@@ -2,14 +2,9 @@ package com.shepherdmoney.interviewproject.model;
 
 import java.time.Instant;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import jakarta.persistence.*;
+import lombok.*;
+import net.minidev.json.annotate.JsonIgnore;
 
 @Entity
 @Getter
@@ -21,9 +16,14 @@ public class BalanceHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
-    
+    @NonNull
     private Instant date;
-
+    @NonNull
     private double balance;
-    
+
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @JoinColumn(name="card_id", nullable = false)
+    @JsonIgnore
+    @ToString.Exclude
+    private CreditCard creditCard;
 }
