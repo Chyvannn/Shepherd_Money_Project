@@ -29,9 +29,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 public class CreditCardController {
 
     // TODO: wire in CreditCard repository here (~1 line)
-    @Autowired
     private final CreditCardRepository creditCardRepository;
-    @Autowired
     private final UserRepository userRepository;
 
     public CreditCardController(CreditCardRepository creditCardRepository, UserRepository userRepository) {
@@ -58,7 +56,10 @@ public class CreditCardController {
             return ResponseEntity.notFound().build();
         }
 
-        CreditCard creditCard = new CreditCard(cardIssuanceBank, cardNumber, userOptional.get());
+        CreditCard creditCard = new CreditCard();
+        creditCard.setUser(userOptional.get());
+        creditCard.setIssuanceBank(cardIssuanceBank);
+        creditCard.setNumber(cardNumber);
         return ResponseEntity.ok(creditCardRepository.save(creditCard).getId());
     }
 
@@ -132,8 +133,15 @@ public class CreditCardController {
             BalanceHistory latestHistory = histories.get(0);
 
             if (earliestHistory.getDate().isAfter(transTime.plus(1, ChronoUnit.DAYS))) {
-                histories.add(histories.size(), new BalanceHistory(transTime, earliestHistory.getBalance()));
-                histories.add(histories.size() - 1, new BalanceHistory(transTime, earliestHistory.getBalance() + transAmount));
+                BalanceHistory tempHistory = new BalanceHistory();
+                tempHistory.setDate(transTime);
+                tempHistory.setBalance(earliestHistory.getBalance());
+                histories.add(histories.size(), tempHistory);
+
+                tempHistory = new BalanceHistory();
+                tempHistory.setDate(transTime.plus(1, ChronoUnit.DAYS));
+                tempHistory.setBalance(earliestHistory.getBalance() + transAmount);
+                histories.add(histories.size() - 1, tempHistory);
             }
             if (earliestHistory.getDate().equals(transTime.plus(1, ChronoUnit.DAYS))) {
                 BalanceHistory tempHistory = histories.get(histories.size() - 2);
@@ -149,10 +157,15 @@ public class CreditCardController {
                      earlierHistory.setBalance(earlierHistory.getBalance() + transAmount);
                  }
                  if (earlierHistory.getDate().isBefore(transTime) && laterHistory.getDate().isAfter(transTime)) {
-                     BalanceHistory newHistory = new BalanceHistory(transTime, earliestHistory.getBalance());
+                     BalanceHistory newHistory = new BalanceHistory();
+                     newHistory.setDate(transTime);
+                     newHistory.setBalance(earliestHistory.getBalance());
                      histories.add(i, newHistory);
                      if (!transTime.plus(1, ChronoUnit.DAYS).equals(laterHistory.getDate())) {
-                         histories.add(i, new BalanceHistory(transTime.plus(1, ChronoUnit.DAYS), earlierHistory.getBalance() + transAmount));
+                         BalanceHistory tempHistory = new BalanceHistory();
+                         tempHistory.setDate(transTime.plus(1, ChronoUnit.DAYS));
+                         tempHistory.setBalance(earlierHistory.getBalance() + transAmount);
+                         histories.add(i, tempHistory);
                      }
                  }
                  if (earlierHistory.getDate().isAfter(transTime)) {
@@ -164,10 +177,20 @@ public class CreditCardController {
             } else if (latestHistory.getDate().equals(transTime.plus(1, ChronoUnit.DAYS))) {
                 latestHistory.setBalance(latestHistory.getBalance() + transAmount);
             } else if (latestHistory.getDate().equals(transTime)) {
-                histories.add(0, new BalanceHistory(transTime.plus(1, ChronoUnit.DAYS), latestHistory.getBalance() + transAmount));
+                BalanceHistory tempHistory = new BalanceHistory();
+                tempHistory.setDate(transTime.plus(1, ChronoUnit.DAYS));
+                tempHistory.setBalance(latestHistory.getBalance() + transAmount);
+                histories.add(0, tempHistory);
             } else {
-                histories.add(0, new BalanceHistory(transTime, latestHistory.getBalance()));
-                histories.add(0, new BalanceHistory(transTime.plus(1, ChronoUnit.DAYS), latestHistory.getBalance() + transAmount));
+                BalanceHistory tempHistory = new BalanceHistory();
+                tempHistory.setDate(transTime);
+                tempHistory.setBalance(latestHistory.getBalance());
+                histories.add(0, tempHistory);
+
+                tempHistory = new BalanceHistory();
+                tempHistory.setDate(transTime.plus(1, ChronoUnit.DAYS));
+                tempHistory.setBalance(latestHistory.getBalance() + transAmount);
+                histories.add(0, tempHistory);
             }
         }
         return ResponseEntity.ok().build();

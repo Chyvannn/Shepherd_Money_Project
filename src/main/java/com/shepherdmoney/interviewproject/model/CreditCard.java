@@ -16,15 +16,14 @@ public class CreditCard {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
-    @NonNull
+
     private String issuanceBank;
-    @NonNull
+
     private String number;
 
 
 
     // TODO: Credit card's owner. For detailed hint, please see User class
-    @NonNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore

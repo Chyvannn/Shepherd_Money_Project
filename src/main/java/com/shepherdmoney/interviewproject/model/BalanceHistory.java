@@ -16,9 +16,9 @@ public class BalanceHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
-    @NonNull
+
     private Instant date;
-    @NonNull
+
     private double balance;
 
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)

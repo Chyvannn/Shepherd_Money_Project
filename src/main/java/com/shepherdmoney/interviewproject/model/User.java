@@ -16,9 +16,9 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
-    @NonNull
+
     private String name;
-    @NonNull
+
     private String email;
 
     // TODO: User's credit card

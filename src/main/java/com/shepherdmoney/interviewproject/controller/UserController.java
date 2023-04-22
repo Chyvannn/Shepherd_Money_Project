@@ -14,8 +14,11 @@ import java.util.Optional;
 public class UserController {
 
     // TODO: wire in the user repository (~ 1 line)
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+
+    public UserController(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @PutMapping("/user")
     public ResponseEntity<Integer> createUser(@RequestBody CreateUserPayload payload) {
@@ -26,7 +29,9 @@ public class UserController {
         }
         String name = payload.getName();
         String email = payload.getEmail();
-        User user = new User(name, email);
+        User user = new User();
+        user.setName(name);
+        user.setEmail(email);
         return ResponseEntity.ok(userRepository.save(user).getId());
     }
 
