@@ -45,11 +45,11 @@ public class CreditCardController {
         //       Do not worry about validating the card number, assume card number could be any arbitrary format and length
         String cardNumber = payload.getCardNumber();
         String cardIssuanceBank = payload.getCardIssuanceBank();
+        int userId = payload.getUserId();
         // Information is null
         if (cardNumber == null || cardIssuanceBank == null || cardNumber.isEmpty() || cardIssuanceBank.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
-        int userId = payload.getUserId();
         Optional<User> userOptional = userRepository.findById(userId);
         // No such user found
         if (userOptional.isEmpty()) {
