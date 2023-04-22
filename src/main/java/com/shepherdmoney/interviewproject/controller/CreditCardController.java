@@ -77,10 +77,8 @@ public class CreditCardController {
                         .number(card.getNumber())
                         .build());
             }
-            return ResponseEntity.ok(creditCardViews);
-        } else {
-            return ResponseEntity.notFound().build();
         }
+        return ResponseEntity.ok(creditCardViews);
     }
 
     @GetMapping("/credit-card:user-id")
@@ -92,7 +90,7 @@ public class CreditCardController {
         } else {
             List<CreditCard> creditCards = creditCardRepository.findByNumber(creditCardNumber);
             if (!creditCards.isEmpty()) {
-                return ResponseEntity.ok(creditCards.get(0).getId());
+                return ResponseEntity.ok(creditCards.get(0).getUser().getId());
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
@@ -132,6 +130,7 @@ public class CreditCardController {
             BalanceHistory earliestHistory = histories.get(histories.size() - 1);
             BalanceHistory latestHistory = histories.get(0);
 
+            // If transaction before the earliest history - 1, add 2 histories
             if (earliestHistory.getDate().isAfter(transTime.plus(1, ChronoUnit.DAYS))) {
                 BalanceHistory tempHistory = new BalanceHistory();
                 tempHistory.setDate(transTime);
@@ -141,11 +140,14 @@ public class CreditCardController {
                 tempHistory = new BalanceHistory();
                 tempHistory.setDate(transTime.plus(1, ChronoUnit.DAYS));
                 tempHistory.setBalance(earliestHistory.getBalance() + transAmount);
-                histories.add(histories.size() - 1, tempHistory);
+                histories.add(histories.size(), tempHistory);
             }
+            // if transaction is at earliest history - 1
             if (earliestHistory.getDate().equals(transTime.plus(1, ChronoUnit.DAYS))) {
-                BalanceHistory tempHistory = histories.get(histories.size() - 2);
-                tempHistory.setBalance(tempHistory.getBalance() + transAmount);
+                BalanceHistory tempHistory = new BalanceHistory();
+                tempHistory.setDate(transTime);
+                tempHistory.setBalance(earliestHistory.getBalance());
+                histories.add(histories.size(), tempHistory);
             }
             for (int i = histories.size() - 1; i > 0; i--) {
                  BalanceHistory earlierHistory = histories.get(i);
@@ -192,6 +194,7 @@ public class CreditCardController {
                 tempHistory.setBalance(latestHistory.getBalance() + transAmount);
                 histories.add(0, tempHistory);
             }
+//            creditCardRepository.save(creditCard);
         }
         return ResponseEntity.ok().build();
     }

@@ -25,8 +25,8 @@ public class UserControllerTests {
     @Test
     void shouldReturnOKWhenAUserIsCreated() throws Exception {
         CreateUserPayload payload = new CreateUserPayload();
-        payload.setName("ivan");
-        payload.setEmail("ivan@example.com");
+        payload.setName("user-create1");
+        payload.setEmail("user-create1@example.com");
 
         mockMvc.perform(put("/user")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -38,8 +38,8 @@ public class UserControllerTests {
     @Test
     void shouldReturnOKWhenExistUserIsDeleted() throws Exception {
         CreateUserPayload payload = new CreateUserPayload();
-        payload.setName("ivan");
-        payload.setEmail("ivan@example.com");
+        payload.setName("user-create2");
+        payload.setEmail("user-create2@example.com");
 
         MvcResult response = mockMvc.perform(put("/user")
                 .contentType(MediaType.APPLICATION_JSON)

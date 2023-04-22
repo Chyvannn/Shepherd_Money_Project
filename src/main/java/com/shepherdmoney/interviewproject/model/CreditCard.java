@@ -40,7 +40,7 @@ public class CreditCard {
     //         {date: '2023-04-11', balance: 1000},
     //         {date: '2023-04-10', balance: 800}
     //       ]
-    @OneToMany(mappedBy = "creditCard", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "creditCard", cascade = CascadeType.PERSIST)
     @ToString.Exclude
     private List<BalanceHistory> balanceHistoryList;
 }
