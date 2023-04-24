@@ -23,7 +23,6 @@ public class BalanceHistory {
 
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     @JoinColumn(name="card_id", nullable = false)
-    @JsonIgnore
     @ToString.Exclude
     private CreditCard creditCard;
 }

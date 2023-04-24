@@ -137,24 +137,25 @@ public class CreditCardController {
 
             boolean found = false;
             double curBalance = histories.get(histories.size() - 1).getBalance();
-            for (int i = histories.size() - 2; i >= 0; i--) {
+            for (int i = histories.size() - 1; i > 0; i--) {
                 BalanceHistory curHistory = histories.get(i);
-                BalanceHistory prevHistory = histories.get(i + 1);
+                BalanceHistory laterHistory = histories.get(i - 1);
                 // if the insert pos is not found
                 if (!found) {
-                    if (curHistory.getDate().isAfter(transTime)) {
-                        // if the transaction happened before the previous history
-                        if (prevHistory.getDate().isAfter(transTime)) {
+                    if (curHistory.getDate().isBefore(transTime)) {
+                        // if the transaction must happen after the previous history
+                        if (laterHistory.getDate().isAfter(transTime)) {
                             sameDayHistory.setBalance(curBalance);
-                            histories.add(i + 2, sameDayHistory);
-                            prevHistory.setBalance(prevHistory.getBalance() + transAmount);
+                            histories.add(i, sameDayHistory);
+                            laterHistory.setBalance(laterHistory.getBalance() + transAmount);
                             // if the prevHistory is more than 1 day after transaction, one more history add
-                            if (prevHistory.getDate().isAfter(nextDayHistory.getDate())) {
+                            if (laterHistory.getDate().isAfter(nextDayHistory.getDate())) {
                                 nextDayHistory.setBalance(curBalance + transAmount);
-                                histories.add(i + 2, nextDayHistory);
-                            } // otherwise, prevHistory is nextDayHistory
-                        } // otherwise the transaction happened on prevHistory date, no change to prevHistory
-                        sameDayHistory.setBalance(sameDayHistory.getBalance() + transAmount);
+                                histories.add(i, nextDayHistory);
+                            } // otherwise, laterHistory is nextDayHistory
+                        } // otherwise the transaction happened on prevHistory date, no change to laterHistory
+                        // update current history with transaction amount
+                        curHistory.setBalance(curHistory.getBalance() + transAmount);
                         found = true;
                     } // trans happened on curHistory will be handled in next iteration
                 } else {
@@ -182,6 +183,8 @@ public class CreditCardController {
                  topHistory.setBalance(curBalance);
                  histories.add(0, topHistory);
             }
+            System.out.print(histories);
+            creditCardRepository.save(creditCard);
         }
         return ResponseEntity.ok().build();
     }

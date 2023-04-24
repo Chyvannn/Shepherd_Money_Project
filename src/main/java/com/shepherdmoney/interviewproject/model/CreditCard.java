@@ -26,7 +26,6 @@ public class CreditCard {
     // TODO: Credit card's owner. For detailed hint, please see User class
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnore
     @ToString.Exclude
     private User user;
 
@@ -40,7 +39,7 @@ public class CreditCard {
     //         {date: '2023-04-11', balance: 1000},
     //         {date: '2023-04-10', balance: 800}
     //       ]
-    @OneToMany(mappedBy = "creditCard", cascade = CascadeType.PERSIST)
+    @OneToMany(mappedBy = "creditCard", cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
     @ToString.Exclude
     private List<BalanceHistory> balanceHistoryList;
 }
