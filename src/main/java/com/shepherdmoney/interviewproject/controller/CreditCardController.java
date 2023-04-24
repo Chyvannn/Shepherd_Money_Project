@@ -14,6 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -110,8 +113,6 @@ public class CreditCardController {
         if (payload == null || payload.length == 0) {
             return ResponseEntity.badRequest().build();
         }
-        // Get current date
-        Instant currentTime = Instant.now().truncatedTo(ChronoUnit.DAYS);
 
         // Update for each transaction
         for (UpdateBalancePayload trans : payload) {
@@ -127,74 +128,60 @@ public class CreditCardController {
             CreditCard creditCard = creditCards.get(0);
             List<BalanceHistory> histories = creditCard.getBalanceHistoryList();
 
-            BalanceHistory earliestHistory = histories.get(histories.size() - 1);
-            BalanceHistory latestHistory = histories.get(0);
+            BalanceHistory sameDayHistory = new BalanceHistory();
+            sameDayHistory.setDate(transTime);
+            sameDayHistory.setCreditCard(creditCard);
+            BalanceHistory nextDayHistory = new BalanceHistory();
+            nextDayHistory.setDate(transTime.plus(1, ChronoUnit.DAYS));
+            nextDayHistory.setCreditCard(creditCard);
 
-            // If transaction before the earliest history - 1, add 2 histories
-            if (earliestHistory.getDate().isAfter(transTime.plus(1, ChronoUnit.DAYS))) {
-                BalanceHistory tempHistory = new BalanceHistory();
-                tempHistory.setDate(transTime);
-                tempHistory.setBalance(earliestHistory.getBalance());
-                histories.add(histories.size(), tempHistory);
-
-                tempHistory = new BalanceHistory();
-                tempHistory.setDate(transTime.plus(1, ChronoUnit.DAYS));
-                tempHistory.setBalance(earliestHistory.getBalance() + transAmount);
-                histories.add(histories.size(), tempHistory);
+            boolean found = false;
+            double curBalance = histories.get(histories.size() - 1).getBalance();
+            for (int i = histories.size() - 2; i >= 0; i--) {
+                BalanceHistory curHistory = histories.get(i);
+                BalanceHistory prevHistory = histories.get(i + 1);
+                // if the insert pos is not found
+                if (!found) {
+                    if (curHistory.getDate().isAfter(transTime)) {
+                        // if the transaction happened before the previous history
+                        if (prevHistory.getDate().isAfter(transTime)) {
+                            sameDayHistory.setBalance(curBalance);
+                            histories.add(i + 2, sameDayHistory);
+                            prevHistory.setBalance(prevHistory.getBalance() + transAmount);
+                            // if the prevHistory is more than 1 day after transaction, one more history add
+                            if (prevHistory.getDate().isAfter(nextDayHistory.getDate())) {
+                                nextDayHistory.setBalance(curBalance + transAmount);
+                                histories.add(i + 2, nextDayHistory);
+                            } // otherwise, prevHistory is nextDayHistory
+                        } // otherwise the transaction happened on prevHistory date, no change to prevHistory
+                        sameDayHistory.setBalance(sameDayHistory.getBalance() + transAmount);
+                        found = true;
+                    } // trans happened on curHistory will be handled in next iteration
+                } else {
+                    // if already found, only update balance is needed
+                    curHistory.setBalance(curHistory.getBalance() + transAmount);
+                }
+                curBalance = curHistory.getBalance();
             }
-            // if transaction is at earliest history - 1
-            if (earliestHistory.getDate().equals(transTime.plus(1, ChronoUnit.DAYS))) {
-                BalanceHistory tempHistory = new BalanceHistory();
-                tempHistory.setDate(transTime);
-                tempHistory.setBalance(earliestHistory.getBalance());
-                histories.add(histories.size(), tempHistory);
+            // if still not found after iteration, trans happened after all history
+            if (!found) {
+                sameDayHistory.setBalance(curBalance);
+                histories.add(0, sameDayHistory);
+                nextDayHistory.setBalance(curBalance + transAmount);
+                histories.add(0, nextDayHistory);
+                curBalance = curBalance + transAmount;
             }
-            for (int i = histories.size() - 1; i > 0; i--) {
-                 BalanceHistory earlierHistory = histories.get(i);
-                 BalanceHistory laterHistory = histories.get(i - 1);
-                 if (transTime.isAfter(laterHistory.getDate())) {
-                     continue;
-                 }
-                 if (transTime.equals(earlierHistory.getDate().minus(1, ChronoUnit.DAYS))) {
-                     earlierHistory.setBalance(earlierHistory.getBalance() + transAmount);
-                 }
-                 if (earlierHistory.getDate().isBefore(transTime) && laterHistory.getDate().isAfter(transTime)) {
-                     BalanceHistory newHistory = new BalanceHistory();
-                     newHistory.setDate(transTime);
-                     newHistory.setBalance(earliestHistory.getBalance());
-                     histories.add(i, newHistory);
-                     if (!transTime.plus(1, ChronoUnit.DAYS).equals(laterHistory.getDate())) {
-                         BalanceHistory tempHistory = new BalanceHistory();
-                         tempHistory.setDate(transTime.plus(1, ChronoUnit.DAYS));
-                         tempHistory.setBalance(earlierHistory.getBalance() + transAmount);
-                         histories.add(i, tempHistory);
-                     }
-                 }
-                 if (earlierHistory.getDate().isAfter(transTime)) {
-                     earlierHistory.setBalance(earlierHistory.getBalance() + transAmount);
-                 }
+            // check if the top history is the current data
+            Instant currentTime = Instant.now().truncatedTo(ChronoUnit.DAYS);
+            LocalDate firstDate = LocalDateTime.ofInstant(histories.get(0).getDate(), ZoneId.systemDefault()).toLocalDate();
+            LocalDate currentDate = LocalDateTime.ofInstant(currentTime, ZoneId.systemDefault()).toLocalDate();
+            if (!firstDate.equals(currentDate)) {
+                 BalanceHistory topHistory = new BalanceHistory();
+                 topHistory.setCreditCard(creditCard);
+                 topHistory.setDate(currentTime);
+                 topHistory.setBalance(curBalance);
+                 histories.add(0, topHistory);
             }
-            if (latestHistory.getDate().isAfter(transTime.plus(1, ChronoUnit.DAYS))) {
-                latestHistory.setBalance(latestHistory.getBalance() + transAmount);
-            } else if (latestHistory.getDate().equals(transTime.plus(1, ChronoUnit.DAYS))) {
-                latestHistory.setBalance(latestHistory.getBalance() + transAmount);
-            } else if (latestHistory.getDate().equals(transTime)) {
-                BalanceHistory tempHistory = new BalanceHistory();
-                tempHistory.setDate(transTime.plus(1, ChronoUnit.DAYS));
-                tempHistory.setBalance(latestHistory.getBalance() + transAmount);
-                histories.add(0, tempHistory);
-            } else {
-                BalanceHistory tempHistory = new BalanceHistory();
-                tempHistory.setDate(transTime);
-                tempHistory.setBalance(latestHistory.getBalance());
-                histories.add(0, tempHistory);
-
-                tempHistory = new BalanceHistory();
-                tempHistory.setDate(transTime.plus(1, ChronoUnit.DAYS));
-                tempHistory.setBalance(latestHistory.getBalance() + transAmount);
-                histories.add(0, tempHistory);
-            }
-//            creditCardRepository.save(creditCard);
         }
         return ResponseEntity.ok().build();
     }
